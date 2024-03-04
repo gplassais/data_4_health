@@ -129,23 +129,21 @@ def merge_data(data_):
 
 
 def get_mean_time_presta_client(data_):
-
     df_merge = data_.copy()
 
-    df_merge = df_merge.merge(
-        (
-            df_merge.assign(
-                time_per_client_prestation=lambda x: (
-                    x["Heure de fin"] - x["Heure de début"]
-                )
-                .dt.total_seconds()
-                .mul(1 / 60)
-            )
-            .groupby(["ID Client", "Prestation"])
-            .time_per_client_prestation.mean()
-            .rename("mean_time_per_client_prestation_minutes")
-        ).reset_index(),
-        on=["ID Client", "Prestation"],
+    # Calculate the total seconds for each row
+    df_merge["time_per_row"] = (
+        df_merge["Heure de fin"] - df_merge["Heure de début"]
+    ).dt.total_seconds()
+
+    # Calculate the mean time per client and prestation using groupby and transform
+    df_merge["mean_time_per_client_prestation_minutes"] = (
+        df_merge.groupby(["ID Client", "Prestation"])["time_per_row"]
+        .transform("mean")
+        .div(60)  # Convert seconds to minutes
     )
+
+    # Drop the intermediate column used for calculation
+    df_merge.drop("time_per_row", axis=1, inplace=True)
 
     return df_merge
