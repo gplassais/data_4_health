@@ -145,3 +145,31 @@ def get_mean_time_presta_client(data_):
     )
 
     return df_merge
+
+
+def compute_travel_time(data_, dist_mtx_c2c_, dist_mtx_i2c_):
+    _data = data_.copy()
+    dist = []
+    time = []
+    for _, row in _data.iterrows():
+        dist.append(
+            dist_mtx_i2c_[
+                dist_mtx_i2c_["ID Intervenant"] == row["ID Intervenant"],
+                row["ID Client"][0],
+            ]
+        )
+        for i_client in range(len(row["ID Intervenant"]) - 1):
+            try:
+                dist.append(
+                    dist_mtx_i2c_[
+                        row["ID Client"][i_client], row["ID Client"][i_client + 1]
+                    ]
+                )
+            except:
+                dist.append(
+                    dist_mtx_i2c_[
+                        row["ID Client"][i_client + 1], row["ID Client"][i_client]
+                    ]
+                )
+
+        dist.append(dist_mtx_i2c_[row["ID Client"][-1], row["ID Intervenant"]])
