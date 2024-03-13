@@ -210,3 +210,96 @@ def prestation_duration(h1,h2):
     time_diff = datetime2-datetime1
 
     return(time_diff.total_seconds()//60)
+
+def convert_duration(nb_secondes):
+    return nb_secondes/60
+
+def define_client_time_matrix(
+    df, vehicle_type, client_id_to_idx, out_value=4000
+):
+    list_clients_1 = df["ID Client 1"].unique()
+    list_clients_2 = df["ID Client 2"].unique()
+    full_list = list(set([*list_clients_1, *list_clients_2]))
+
+    matrix = [[0 for i in range(len(full_list))] for k in range(len(full_list))]
+    col_type = "duration_" + vehicle_type
+    for client_1_id in full_list:
+        client_1_idx = client_id_to_idx[client_1_id]
+        for client_2_id in full_list:
+            client_2_idx = client_id_to_idx[client_2_id]
+            if client_1_id != client_2_id:
+                try:
+                    travel_time = convert_duration(
+                        df.loc[
+                            (df["ID Client 1"] == client_1_id)
+                            & (df["ID Client 2"] == client_2_id),
+                            col_type,
+                        ].values[0]
+                    )
+                    matrix[client_1_idx][client_2_idx] = int(travel_time)
+                except IndexError:
+                    try:
+                        travel_time = convert_duration(
+                            df.loc[
+                                (df["ID Client 1"] == client_2_id)
+                                & (df["ID Client 2"] == client_1_id),
+                                col_type,
+                            ].values[0]
+                        )
+                        matrix[client_1_idx][client_2_idx] = int(travel_time)
+                    except IndexError:
+                        matrix[client_1_idx][client_2_idx] = out_value
+
+    return np.array(matrix)
+
+def define_inter_time_matrix(
+    df,
+    full_client_list,
+    inter_id_to_idx,
+    client_id_to_idx,
+    vehicle_type="Car",
+    out_value=4000,
+):
+    
+    list_inter_columns = df['ID Intervenant']
+    full_inter_list = list_inter_columns.unique()
+
+    matrix = [
+        [0 for i in range(len(full_client_list))] for k in range(len(full_inter_list))
+    ]
+
+    for inter_id in full_inter_list:
+        inter_idx = inter_id_to_idx[inter_id]
+
+        for client_id in full_client_list:
+            client_idx = client_id_to_idx[client_id]
+            try:
+                travel_time = convert_duration(
+                    df.loc[(df["ID Client"] == client_id) & (df["ID Intervenant"] == inter_id), 'duration'].values[0]
+                )
+
+                matrix[inter_idx][client_idx] = int(travel_time)
+            except IndexError:
+                matrix[inter_idx][client_idx] = out_value
+
+    return np.array(matrix)
+
+def create_full_time_matrix(client_time_matrix, inter_time_matrix, out_value=4000):
+    nb_client = client_time_matrix.shape[0]
+    nb_inter = inter_time_matrix.shape[0]
+
+    matrix = [
+        [out_value for i in range(nb_client + nb_inter)]
+        for k in range(nb_client + nb_inter)
+    ]
+
+    for i in range(nb_client):
+        for j in range(nb_client):
+            matrix[i][j] = client_time_matrix[i][j]
+
+    for i in range(nb_inter):
+        for j in range(nb_client):
+            matrix[i + nb_client][j] = inter_time_matrix[i][j]
+            matrix[j][i + nb_client] = matrix[i + nb_client][j]
+
+    return np.array(matrix)
