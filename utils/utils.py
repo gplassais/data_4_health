@@ -173,3 +173,40 @@ def compute_travel_time(data_, dist_mtx_c2c_, dist_mtx_i2c_):
                 )
 
         dist.append(dist_mtx_i2c_[row["ID Client"][-1], row["ID Intervenant"]])
+    
+def parse_duration(duration_str):
+    total_minutes = 0
+    
+    if 'hour' in duration_str:
+        hours_part = duration_str.split('hour')[0].strip()
+        total_minutes += int(hours_part) * 60  # Convertir les heures en minutes
+        duration_str = duration_str.split('hour')[1].strip()  # Prendre la partie restante après 'hour'
+    
+    if 'min' in duration_str:
+        mins_part = duration_str.split('min')[0].strip()
+        total_minutes += int(mins_part)
+    
+    return total_minutes
+
+
+def determine_time_window(prestation):
+    if prestation == 'PDJ':
+        return (7, 9)
+    elif prestation == 'DEJ':
+        return (12, 14)
+    elif prestation == 'DIN':
+        return (19, 21)
+    elif prestation == 'TOILETTE_MAT':
+        return (7, 10)
+    elif prestation == 'TOILETTE_SOIR':
+        return (18, 20)
+    else:
+        return (7,22)
+    
+def prestation_duration(h1,h2):
+    datetime1 = datetime.combine(datetime.today(), h1)
+    datetime2 = datetime.combine(datetime.today(), h2)
+
+    time_diff = datetime2-datetime1
+
+    return(time_diff.total_seconds()//60)
